@@ -1,101 +1,102 @@
-import Image from "next/image";
+'use client'
+
+import { useState, useEffect } from 'react'
+import JournalEntries from '@/components/journal-entries'
+import { Entry, Todo } from '@/types/entry'
+import { format } from 'date-fns'
+import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar'
+import { JournalSidebar } from '@/components/journal-sidebar'
+import Link from 'next/link'
+import AddNewEntry from '@/components/entries/add-new-entry'
+import AddNewTodo from '@/components/todos/add-new-todo'
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+  const [entries, setEntries] = useState<Entry[]>([])
+  const [todos, setTodos] = useState<Todo[]>([])
+  const [selectedDate, setSelectedDate] = useState<string>(format(new Date(), 'yyyy-MM-dd'))
+  const [settings, setSettings] = useState({
+    fontStyle: 'sans',
+    theme: 'light',
+    darkMode: false,
+    lineHeight: '1.5',
+  })
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
+  useEffect(() => {
+    const savedSettings = localStorage.getItem('journalSettings')
+    if (savedSettings) {
+      setSettings(JSON.parse(savedSettings))
+    }
+
+    const savedTodos = localStorage.getItem('todos')
+    if (savedTodos) {
+      setTodos(JSON.parse(savedTodos))
+    }
+  }, [])
+
+  useEffect(() => {
+    document.body.className = settings.darkMode ? 'dark' : ''
+  }, [settings.darkMode])
+
+  useEffect(() => {
+    localStorage.setItem('todos', JSON.stringify(todos))
+  }, [todos])
+
+  const filteredEntries = entries.filter((entry) => entry.date === selectedDate)
+  const filteredTodos = todos.filter((todo) => todo.date === selectedDate)
+
+  return (
+    <div
+      className={`flex flex-col md:flex-row h-screen ${
+        settings.fontStyle === 'sans' ? 'font-sans' : settings.fontStyle === 'serif' ? 'font-serif' : 'font-mono'
+      }`}
+    >
+      <SidebarProvider>
+        <JournalSidebar entries={entries} todos={todos} onSelectDate={setSelectedDate} selectedDate={selectedDate} />
+        <main className="flex-1 overflow-auto">
+          <header className="bg-primary text-primary-foreground p-4 rounded-bl-lg rounded-br-lg">
+            <div className="container mx-auto flex justify-between items-center">
+              <Link href="/" className="text-2xl font-bold">
+                Daily Journal
+              </Link>
+              <div className="flex gap-2 items-center">
+                <AddNewEntry setEntries={setEntries} selectedDate={selectedDate} />
+                <AddNewTodo setTodos={setTodos} selectedDate={selectedDate} todos={todos} />
+              </div>
+              <nav>
+                <ul className="flex space-x-4">
+                  <li>
+                    <Link href="/analyst" className="text-sm">
+                      Analysis
+                    </Link>
+                  </li>
+                  <li>
+                    <Link href="/settings" className="text-sm">
+                      Settings
+                    </Link>
+                  </li>
+                </ul>
+              </nav>
+            </div>
+          </header>
+          <div className="max-w-4xl mx-auto px-2 pt-2">
+            <div className="flex items-center justify-between mb-4">
+              <SidebarTrigger />
+              <h1 className="text-2xl font-bold">{new Date(selectedDate).toLocaleDateString()} - Journal</h1>
+            </div>
+            <JournalEntries
+              entries={filteredEntries}
+              setEntries={setEntries}
+              todos={filteredTodos}
+              setTodos={(newTodos) => {
+                const updatedTodos = todos.filter((todo) => todo.date !== selectedDate).concat(newTodos)
+                setTodos(updatedTodos)
+              }}
+              selectedDate={selectedDate}
+              lineHeight={settings.lineHeight}
             />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+          </div>
+        </main>
+      </SidebarProvider>
     </div>
-  );
+  )
 }
